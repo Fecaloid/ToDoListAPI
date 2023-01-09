@@ -1,0 +1,8 @@
+venv
+.idea
+.pytest_cache
+sql_app.db
+tests/.pytest_cache
+tests/sql_app.db
+.env
+test.db
