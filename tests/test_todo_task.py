@@ -1,7 +1,7 @@
 from random import choice
 
 from config.test_db import client
-from tests.fixtures.todo_task import todo_task_list
+from tests.fixtures.todo_task import todo_task_list, today
 
 
 def test_create_todo_tasks():
@@ -11,7 +11,7 @@ def test_create_todo_tasks():
     """
     for todo_task in todo_task_list:
         response = client.post("/todo_task/", json=todo_task)
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = response.json()
         assert data['title'] == todo_task['title']
         assert data['description'] == todo_task['description']
@@ -27,6 +27,11 @@ def test_read_todo_tasks():
     data = response.json()
     assert len(data) == len(todo_task_list)
 
+    response = client.get(f'/todo_task/?date={today}')
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 3
+
 
 def test_read_todo_task():
     """
@@ -35,7 +40,7 @@ def test_read_todo_task():
     """
     request = choice(todo_task_list)
     response = client.post("/todo_task/", json=request)
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data['title'] == request['title']
     assert data['description'] == request['description']
@@ -44,63 +49,71 @@ def test_read_todo_task():
     assert data == response.json()
 
 
-# def test_read_item():
-#     response = client.get("/todo_task/")
-#     assert response.status_code == 200
-#     b = todo_task_list
-#     a = response.json()
-#     assert response.json() == {
-#         "id": "foo",
-#         "title": "Foo",
-#         "description": "There goes my hero",
-#     }
+def test_update_todo_task():
+    """
+    Case: create, update and get todo_task.
+    Expect: process finished success.
+    """
+    request = choice(todo_task_list)
+    response = client.post("/todo_task/", json=request)
+    assert response.status_code == 201
+    data = response.json()
+    assert data['title'] == request['title']
+    request['title'] = 'modified'
+    response = client.put(f"/todo_task/{data['id']}/", json=request)
+    assert response.status_code == 200
+    data = response.json()
+    assert data['title'] == 'modified'
 
 
-# def test_read_item_bad_token():
-#     response = client.get("/items/foo", headers={"X-Token": "hailhydra"})
-#     assert response.status_code == 400
-#     assert response.json() == {"detail": "Invalid X-Token header"}
-#
-#
-# def test_read_inexistent_item():
-#     response = client.get("/items/baz", headers={"X-Token": "coneofsilence"})
-#     assert response.status_code == 404
-#     assert response.json() == {"detail": "Item not found"}
-#
-#
-# def test_create_item():
-#     response = client.post(
-#         "/items/",
-#         headers={"X-Token": "coneofsilence"},
-#         json={"id": "foobar", "title": "Foo Bar", "description": "The Foo Barters"},
-#     )
-#     assert response.status_code == 200
-#     assert response.json() == {
-#         "id": "foobar",
-#         "title": "Foo Bar",
-#         "description": "The Foo Barters",
-#     }
-#
-#
-# def test_create_item_bad_token():
-#     response = client.post(
-#         "/items/",
-#         headers={"X-Token": "hailhydra"},
-#         json={"id": "bazz", "title": "Bazz", "description": "Drop the bazz"},
-#     )
-#     assert response.status_code == 400
-#     assert response.json() == {"detail": "Invalid X-Token header"}
-#
-#
-# def test_create_existing_item():
-#     response = client.post(
-#         "/items/",
-#         headers={"X-Token": "coneofsilence"},
-#         json={
-#             "id": "foo",
-#             "title": "The Foo ID Stealers",
-#             "description": "There goes my stealer",
-#         },
-#     )
-#     assert response.status_code == 400
-#     assert response.json() == {"detail": "Item already exists"}
+def test_complete_todo_task():
+    """
+    Case: create, complete and get todo_task.
+    Expect: process finished success.
+    """
+    request = choice(todo_task_list)
+    response = client.post("/todo_task/", json=request)
+    assert response.status_code == 201
+    data = response.json()
+    assert data['title'] == request['title']
+    response = client.patch(f"/todo_task/{data['id']}/")
+    assert response.status_code == 200
+    data = response.json()
+    assert data['completed']
+
+
+def test_delete_todo_task():
+    """
+    Case: create, complete and get todo_task.
+    Expect: process finished success.
+    """
+    request = choice(todo_task_list)
+    response = client.post("/todo_task/", json=request)
+    assert response.status_code == 201
+    data = response.json()
+    assert data['title'] == request['title']
+    response = client.delete(f"/todo_task/{data['id']}/")
+    assert response.status_code == 204
+    response = client.get(f"/todo_task/{data['id']}/")
+    assert response.status_code == 404
+
+
+def test_failed_create_todo_task():
+    """
+    Case: try to create task with wrong data.
+    Expect: process failed.
+    """
+    request = choice(todo_task_list).copy()
+    del request['title']
+    response = client.post("/todo_task/", json=request)
+    assert response.status_code == 422
+
+    request = choice(todo_task_list).copy()
+    del request['date']
+    response = client.post("/todo_task/", json=request)
+    assert response.status_code == 422
+
+    request = choice(todo_task_list).copy()
+    del request['time']
+    response = client.post("/todo_task/", json=request)
+    assert response.status_code == 422

@@ -12,6 +12,7 @@ class TodoTaskBase(BaseModel):
 
 class TodoTask(TodoTaskBase):
     id: int
+    completed: bool
 
     class Config:
         orm_mode = True

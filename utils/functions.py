@@ -22,4 +22,4 @@ def change_time(time: datetime.datetime, subtract: bool = True, **kwargs) -> dat
 
         return result.time()
     except TypeError:
-        raise TypeError("Unknown kwargs for relativedelta")
+        raise TypeError("Wrong kwargs for relativedelta")
